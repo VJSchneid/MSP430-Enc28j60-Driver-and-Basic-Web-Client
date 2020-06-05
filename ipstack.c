@@ -17,36 +17,30 @@ unsigned char serverIP[4];
 
 unsigned char dnsIP[4] = {192, 168, 0, 1};
 
-void add32(unsigned char *op32, unsigned int op16)
-{
+void add32(unsigned char *op32, unsigned int op16) {
   op32[3] += (op16 & 0xff);
   op32[2] += (op16 >> 8);
 
-  if (op32[2] < (op16 >> 8))
-  {
+  if (op32[2] < (op16 >> 8)) {
     ++op32[1];
-    if (op32[1] == 0)
-    {
+    if (op32[1] == 0) {
       ++op32[0];
     }
   }
 
-  if (op32[3] < (op16 & 0xff))
-  {
+  if (op32[3] < (op16 & 0xff)) {
     ++op32[2];
-    if (op32[2] == 0)
-    {
+    if (op32[2] == 0) {
       ++op32[1];
-      if (op32[1] == 0)
-      {
+      if (op32[1] == 0) {
         ++op32[0];
       }
     }
   }
 }
 
-static unsigned int chksum(unsigned int sum, unsigned char *data, unsigned int len)
-{
+static unsigned int chksum(unsigned int sum, unsigned char *data,
+                           unsigned int len) {
   unsigned int t;
   const unsigned char *dataptr;
   const unsigned char *last_byte;
@@ -54,23 +48,19 @@ static unsigned int chksum(unsigned int sum, unsigned char *data, unsigned int l
   dataptr = data;
   last_byte = data + len - 1;
 
-  while (dataptr < last_byte)
-  { /* At least two more bytes */
+  while (dataptr < last_byte) { /* At least two more bytes */
     t = (dataptr[0] << 8) + dataptr[1];
     sum += t;
-    if (sum < t)
-    {
+    if (sum < t) {
       sum++; /* carry */
     }
     dataptr += 2;
   }
 
-  if (dataptr == last_byte)
-  {
+  if (dataptr == last_byte) {
     t = (dataptr[0] << 8) + 0;
     sum += t;
-    if (sum < t)
-    {
+    if (sum < t) {
       sum++; /* carry */
     }
   }
@@ -79,8 +69,8 @@ static unsigned int chksum(unsigned int sum, unsigned char *data, unsigned int l
   return sum;
 }
 
-void SetupBasicIPPacket(unsigned char *packet, unsigned char protocol, unsigned char *destIP)
-{
+void SetupBasicIPPacket(unsigned char *packet, unsigned char protocol,
+                        unsigned char *destIP) {
   IPhdr *ip = (IPhdr *)packet;
 
   ip->eth.type = HTONS(IPPACKET);
@@ -101,8 +91,7 @@ void SetupBasicIPPacket(unsigned char *packet, unsigned char protocol, unsigned 
   memcpy(ip->dest, destIP, sizeof(deviceIP));
 }
 
-void SendArpPacket(unsigned char *targetIP)
-{
+void SendArpPacket(unsigned char *targetIP) {
   ARP arpPacket;
 
   /*----Setup EtherNetII Header----*/
@@ -130,12 +119,9 @@ void SendArpPacket(unsigned char *targetIP)
 
   // If we are just making sure this IP address is not in use fill in the
   // sender IP address as 0. Otherwise use the device IP address.
-  if (!memcmp(targetIP, deviceIP, sizeof(deviceIP)))
-  {
+  if (!memcmp(targetIP, deviceIP, sizeof(deviceIP))) {
     memset(arpPacket.senderIP, 0, sizeof(deviceIP));
-  }
-  else
-  {
+  } else {
     memcpy(arpPacket.senderIP, deviceIP, sizeof(deviceIP));
   }
 
@@ -143,13 +129,12 @@ void SendArpPacket(unsigned char *targetIP)
   MACWrite((unsigned char *)&arpPacket, sizeof(ARP));
 }
 
-void ReplyArpPacket(ARP *arpPacket)
-{
+void ReplyArpPacket(ARP *arpPacket) {
   // To reply we want to make sure the IP address is for us first
-  if (!memcmp(arpPacket->targetIP, deviceIP, sizeof(deviceIP)))
-  {
+  if (!memcmp(arpPacket->targetIP, deviceIP, sizeof(deviceIP))) {
     // The arp is for us so swap the src and dest addrs
-    memcpy(arpPacket->eth.DestAddrs, arpPacket->eth.SrcAddrs, sizeof(deviceMAC));
+    memcpy(arpPacket->eth.DestAddrs, arpPacket->eth.SrcAddrs,
+           sizeof(deviceMAC));
     memcpy(arpPacket->eth.SrcAddrs, deviceMAC, sizeof(deviceMAC));
     // Swap the target and sender MACs
     memcpy(arpPacket->targetMAC, arpPacket->senderMAC, sizeof(deviceMAC));
@@ -164,8 +149,7 @@ void ReplyArpPacket(ARP *arpPacket)
   }
 }
 
-unsigned int ackTcp(TCPhdr *tcp, unsigned int len)
-{
+unsigned int ackTcp(TCPhdr *tcp, unsigned int len) {
   // Zero the checksums
   tcp->chksum = 0x0;
   tcp->ip.chksum = 0x0;
@@ -185,12 +169,9 @@ unsigned int ackTcp(TCPhdr *tcp, unsigned int len)
   memcpy(tcp->ackNo, tcp->seqNo, sizeof(ack));
   memcpy(tcp->seqNo, ack, sizeof(ack));
 
-  if (tcp->SYN)
-  {
+  if (tcp->SYN) {
     add32(tcp->ackNo, 1);
-  }
-  else
-  {
+  } else {
     add32(tcp->ackNo, len - sizeof(TCPhdr));
   }
   tcp->SYN = 0;
@@ -199,15 +180,19 @@ unsigned int ackTcp(TCPhdr *tcp, unsigned int len)
   len = sizeof(TCPhdr);
   tcp->ip.len = HTONS(len - sizeof(EtherNetII));
 
-  int pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source, sizeof(deviceIP) * 2);
-  tcp->chksum = HTONS(~(chksum(pseudochksum, ((unsigned char *)tcp) + sizeof(IPhdr), len - sizeof(IPhdr))));
+  int pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source,
+                            sizeof(deviceIP) * 2);
+  tcp->chksum =
+      HTONS(~(chksum(pseudochksum, ((unsigned char *)tcp) + sizeof(IPhdr),
+                     len - sizeof(IPhdr))));
 
-  tcp->ip.chksum = HTONS(~(chksum(0, ((unsigned char *)tcp) + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  tcp->ip.chksum =
+      HTONS(~(chksum(0, ((unsigned char *)tcp) + sizeof(EtherNetII),
+                     sizeof(IPhdr) - sizeof(EtherNetII))));
   return len;
 }
 
-void SendPing(unsigned char *targetIP)
-{
+void SendPing(unsigned char *targetIP) {
   ICMPhdr ping;
   SetupBasicIPPacket((unsigned char *)&ping, ICMPPROTOCOL, targetIP);
 
@@ -218,17 +203,18 @@ void SendPing(unsigned char *targetIP)
   ping.iden = HTONS(0x1);
   ping.seqNum = HTONS(76);
 
-  ping.chksum = HTONS(~(chksum(0, ((unsigned char *)&ping) + sizeof(IPhdr), sizeof(ICMPhdr) - sizeof(IPhdr))));
+  ping.chksum = HTONS(~(chksum(0, ((unsigned char *)&ping) + sizeof(IPhdr),
+                               sizeof(ICMPhdr) - sizeof(IPhdr))));
   ping.ip.len = HTONS(60 - sizeof(EtherNetII));
-  ping.ip.chksum = HTONS(~(chksum(0, (unsigned char *)&ping + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  ping.ip.chksum =
+      HTONS(~(chksum(0, (unsigned char *)&ping + sizeof(EtherNetII),
+                     sizeof(IPhdr) - sizeof(EtherNetII))));
 
   MACWrite((unsigned char *)&ping, sizeof(ICMPhdr));
 }
 
-void PingReply(ICMPhdr *ping, unsigned int len)
-{
-  if (ping->type == ICMPREQUEST)
-  {
+void PingReply(ICMPhdr *ping, unsigned int len) {
+  if (ping->type == ICMPREQUEST) {
     ping->type = ICMPREPLY;
     ping->chksum = 0x0;
     ping->ip.chksum = 0x0;
@@ -239,40 +225,36 @@ void PingReply(ICMPhdr *ping, unsigned int len)
     memcpy(ping->ip.dest, ping->ip.source, sizeof(deviceIP));
     memcpy(ping->ip.source, deviceIP, sizeof(deviceIP));
 
-    ping->chksum = HTONS(~(chksum(0, ((unsigned char *)ping) + sizeof(IPhdr), len - sizeof(IPhdr))));
+    ping->chksum = HTONS(~(chksum(0, ((unsigned char *)ping) + sizeof(IPhdr),
+                                  len - sizeof(IPhdr))));
     ping->ip.chksum =
-        HTONS(~(chksum(0, ((unsigned char *)ping) + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+        HTONS(~(chksum(0, ((unsigned char *)ping) + sizeof(EtherNetII),
+                       sizeof(IPhdr) - sizeof(EtherNetII))));
     MACWrite((unsigned char *)ping, len);
   }
 }
 
-char GetPacket(int protocol, unsigned char *packet)
-{
-  for (unsigned char i = 0; i < 255; ++i) // Should make this return 0 after so many failed packets
+char GetPacket(int protocol, unsigned char *packet) {
+  for (unsigned char i = 0; i < 255;
+       ++i) // Should make this return 0 after so many failed packets
   {
     unsigned int len;
-    if (len = MACRead(packet, MAXPACKETLEN))
-    {
+    if (len = MACRead(packet, MAXPACKETLEN)) {
       EtherNetII *eth = (EtherNetII *)packet;
-      if (eth->type == HTONS(ARPPACKET))
-      {
+      if (eth->type == HTONS(ARPPACKET)) {
         ARP *arpPacket = (ARP *)packet;
         if (arpPacket->opCode == HTONS(ARPREQUEST))
           // We have an arp and we should reply
           ReplyArpPacket(arpPacket);
-      }
-      else if (eth->type == HTONS(IPPACKET))
-      {
+      } else if (eth->type == HTONS(IPPACKET)) {
         // We have an IP packet and we need to check protocol.
         IPhdr *ip = (IPhdr *)packet;
-        if (ip->protocol == protocol)
-        {
+        if (ip->protocol == protocol) {
           return 1;
         }
 
         // Reply to any Pings
-        if (ip->protocol == ICMPPROTOCOL)
-        {
+        if (ip->protocol == ICMPPROTOCOL) {
           PingReply((ICMPhdr *)packet, len);
         }
       }
@@ -281,21 +263,16 @@ char GetPacket(int protocol, unsigned char *packet)
   return 0;
 }
 
-int IPstackInit()
-{
+int IPstackInit() {
   initMAC(deviceMAC);
   // Announce we are here
   SendArpPacket(deviceIP);
   // Just waste a bit of time confirming no one has our IP
-  for (unsigned int i = 0; i < 0x0fff; i++)
-  {
+  for (unsigned int i = 0; i < 0x0fff; i++) {
     ARP arpPacket;
-    if (MACRead((unsigned char *)&arpPacket, sizeof(ARP)))
-    {
-      if (arpPacket.eth.type == HTONS(ARPPACKET))
-      {
-        if (!memcmp(arpPacket.senderIP, deviceIP, sizeof(deviceIP)))
-        {
+    if (MACRead((unsigned char *)&arpPacket, sizeof(ARP))) {
+      if (arpPacket.eth.type == HTONS(ARPPACKET)) {
+        if (!memcmp(arpPacket.senderIP, deviceIP, sizeof(deviceIP))) {
           // Uh oh this IP address is already in use
           return 0;
         }
@@ -305,15 +282,12 @@ int IPstackInit()
   // Well no one replied so its safe to assume IP address is OK
   // Now we need to get the routers MAC address
   SendArpPacket(routerIP);
-  for (unsigned int i = 0; i < 0x5fff; i++)
-  {
+  for (unsigned int i = 0; i < 0x5fff; i++) {
     ARP arpPacket;
-    if (MACRead((unsigned char *)&arpPacket, sizeof(ARP)))
-    {
-      if (arpPacket.eth.type == HTONS(ARPPACKET))
-      {
-        if (arpPacket.opCode == HTONS(ARPREPLY) && !memcmp(arpPacket.senderIP, routerIP, sizeof(routerIP)))
-        {
+    if (MACRead((unsigned char *)&arpPacket, sizeof(ARP))) {
+      if (arpPacket.eth.type == HTONS(ARPPACKET)) {
+        if (arpPacket.opCode == HTONS(ARPREPLY) &&
+            !memcmp(arpPacket.senderIP, routerIP, sizeof(routerIP))) {
           // Should be the routers reply so copy the mac address
           memcpy(routerMAC, arpPacket.senderMAC, sizeof(routerMAC));
           return 1;
@@ -321,16 +295,14 @@ int IPstackInit()
       }
     }
     // Every now and then send out another ARP
-    if (!(i % 0x1000))
-    {
+    if (!(i % 0x1000)) {
       SendArpPacket(routerIP);
     }
   }
   return 0;
 }
 
-void DNSLookup(const char *url)
-{
+void DNSLookup(const char *url) {
   unsigned char packet[MAXPACKETLEN];
   DNShdr *dns = (DNShdr *)packet;
   SetupBasicIPPacket(packet, UDPPROTOCOL, dnsIP);
@@ -349,15 +321,12 @@ void DNSLookup(const char *url)
   // Add in question header
   char *dnsq = (char *)(packet + sizeof(DNShdr) + 1); // Note the +1
   int noChars = 0;
-  for (const char *c = url; *c != '\0' && *c != '\\'; ++c, ++dnsq)
-  {
+  for (const char *c = url; *c != '\0' && *c != '\\'; ++c, ++dnsq) {
     *dnsq = *c;
-    if (*c == '.')
-    {
+    if (*c == '.') {
       *(dnsq - (noChars + 1)) = noChars;
       noChars = 0;
-    }
-    else
+    } else
       ++noChars;
   }
   *(dnsq - (noChars + 1)) = noChars;
@@ -373,16 +342,17 @@ void DNSLookup(const char *url)
   dns->udp.len = HTONS(len - sizeof(IPhdr));
   dns->udp.ip.len = HTONS(len - sizeof(EtherNetII));
   // Calculate all checksums
-  int pseudochksum = chksum(UDPPROTOCOL + len - sizeof(IPhdr), dns->udp.ip.source, sizeof(deviceIP) * 2);
-  dns->udp.chksum = HTONS(~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
-  dns->udp.ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  int pseudochksum = chksum(UDPPROTOCOL + len - sizeof(IPhdr),
+                            dns->udp.ip.source, sizeof(deviceIP) * 2);
+  dns->udp.chksum = HTONS(
+      ~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
+  dns->udp.ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII),
+                                      sizeof(IPhdr) - sizeof(EtherNetII))));
 
   MACWrite(packet, len);
-  while (1)
-  {
+  while (1) {
     GetPacket(UDPPROTOCOL, packet);
-    if (((UDPhdr *)packet)->sourcePort == HTONS(DNSUDPPORT))
-    {
+    if (((UDPhdr *)packet)->sourcePort == HTONS(DNSUDPPORT)) {
       dns = (DNShdr *)packet;
       if (dns->id == HTONS(0xfae3)) // See above for reason
       {
@@ -398,8 +368,7 @@ void DNSLookup(const char *url)
   }
 }
 
-int IPstackHTMLPost(const char *url, const char *data, char *reply)
-{
+int IPstackHTMLPost(const char *url, const char *data, char *reply) {
   // First we need to do some DNS looking up
   DNSLookup(url); // Fills in serverIP
   // Now that we have the IP we can connect to the server
@@ -423,14 +392,16 @@ int IPstackHTMLPost(const char *url, const char *data, char *reply)
   // memcpy(&tcp->options[0],&opts[0],8);
   unsigned int len = sizeof(TCPhdr);
   tcp->ip.len = HTONS(sizeof(TCPhdr) - sizeof(EtherNetII));
-  int pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source, 8);
-  tcp->chksum = HTONS(~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
-  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  int pseudochksum =
+      chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source, 8);
+  tcp->chksum = HTONS(
+      ~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
+  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII),
+                                  sizeof(IPhdr) - sizeof(EtherNetII))));
 
   MACWrite(packet, len);
   // ack syn/ack
-  do
-  {
+  do {
     GetPacket(TCPPROTOCOL, packet);
   } while (!(tcp->destPort == HTONS(0xe2d7)));
   ackTcp(tcp, len);
@@ -447,13 +418,15 @@ int IPstackHTMLPost(const char *url, const char *data, char *reply)
   tcp->ip.len = HTONS(len - sizeof(EtherNetII));
   tcp->chksum = 0;
   tcp->ip.chksum = 0;
-  pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source, sizeof(deviceIP) * 2);
-  tcp->chksum = HTONS(~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
-  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source,
+                        sizeof(deviceIP) * 2);
+  tcp->chksum = HTONS(
+      ~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
+  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII),
+                                  sizeof(IPhdr) - sizeof(EtherNetII))));
   MACWrite(packet, len);
 
-  do
-  {
+  do {
     GetPacket(TCPPROTOCOL, packet);
   } while (!(tcp->destPort == HTONS(0xe2d7)));
   memcpy(reply, packet + len - 7, 7);
@@ -465,16 +438,18 @@ int IPstackHTMLPost(const char *url, const char *data, char *reply)
   tcp->ACK = 1;
   tcp->chksum = 0;
   tcp->ip.chksum = 0;
-  pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source, sizeof(deviceIP) * 2);
-  tcp->chksum = HTONS(~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
-  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII), sizeof(IPhdr) - sizeof(EtherNetII))));
+  pseudochksum = chksum(TCPPROTOCOL + len - sizeof(IPhdr), tcp->ip.source,
+                        sizeof(deviceIP) * 2);
+  tcp->chksum = HTONS(
+      ~(chksum(pseudochksum, packet + sizeof(IPhdr), len - sizeof(IPhdr))));
+  tcp->ip.chksum = HTONS(~(chksum(0, packet + sizeof(EtherNetII),
+                                  sizeof(IPhdr) - sizeof(EtherNetII))));
   MACWrite(packet, len);
   // Now we need to copy the payload to the reply buffer and ack the reply
   return 0;
 }
 
-int IPstackIdle()
-{
+int IPstackIdle() {
   unsigned char packet[MAXPACKETLEN];
   GetPacket(0, packet);
   return 1;

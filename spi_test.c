@@ -62,8 +62,7 @@ MIWRL addr is 0x16
 MIWRH addr is 0x17
 PHLCON addr is 0x14
 */
-int main(void)
-{
+int main(void) {
   // Stop watchdog timer to prevent time out reset
   WDTCTL = WDTPW + WDTHOLD;
   initSPI();                   // initialise the SPI

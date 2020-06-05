@@ -1,10 +1,9 @@
 ---
-BasedOnStyle: Microsoft
+BasedOnStyle: LLVM
 AlignConsecutiveMacros: 'true'
 AlignTrailingComments: 'true'
 AllowShortBlocksOnASingleLine: 'true'
 AllowShortLoopsOnASingleLine: 'true'
-IndentWidth: '2'
 PointerAlignment: Right
 SortIncludes: 'false'
 TabWidth: '4'

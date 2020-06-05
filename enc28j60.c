@@ -21,8 +21,9 @@ RXSTATUS ptrRxStatus;
 static unsigned char ReadETHReg(unsigned char); // read a ETX reg
 static unsigned char ReadMacReg(unsigned char); // read a MAC reg
 static unsigned int ReadPhyReg(unsigned char);  // read a PHY reg
-static unsigned int ReadMacBuffer(unsigned char *,
-                                  unsigned int); // read the mac buffer (ptrBuffer, no. of bytes)
+static unsigned int
+ReadMacBuffer(unsigned char *,
+              unsigned int); // read the mac buffer (ptrBuffer, no. of bytes)
 static unsigned char WriteCtrReg(unsigned char,
                                  unsigned char); // write to control reg
 static unsigned char WritePhyReg(unsigned char,
@@ -45,9 +46,9 @@ static void BankSel(unsigned char);
  * dependancy.*/
 #define SEL_MAC(x) (x == TRUE) ? (P2OUT &= (~CS)) : (P2OUT |= CS)
 /** MACRO for rev B5 fix.*/
-#define ERRATAFIX                                                                                                      \
-  SetBitField(ECON1, ECON1_TXRST);                                                                                     \
-  ClrBitField(ECON1, ECON1_TXRST);                                                                                     \
+#define ERRATAFIX                                                              \
+  SetBitField(ECON1, ECON1_TXRST);                                             \
+  ClrBitField(ECON1, ECON1_TXRST);                                             \
   ClrBitField(EIR, EIR_TXERIF | EIR_TXIF)
 
 /***********************************************************************/
@@ -64,8 +65,7 @@ static void BankSel(unsigned char);
  * \date 0.1 20/06/07 First draft
  */
 /**********************************************************************/
-void initMAC(const unsigned char *deviceMAC)
-{
+void initMAC(const unsigned char *deviceMAC) {
   initSPI(); // initialise the SPI
 
   ResetMac(); // erm. Resets the MAC.
@@ -110,7 +110,8 @@ void initMAC(const unsigned char *deviceMAC)
   BankSel(2);
 
   //---Setup MAC registers---
-  WriteCtrReg(MACON1, MACON1_MARXEN | MACON1_TXPAUS | MACON1_RXPAUS); // Enable reception of frames
+  WriteCtrReg(MACON1, MACON1_MARXEN | MACON1_TXPAUS |
+                          MACON1_RXPAUS); // Enable reception of frames
   WriteCtrReg(MACON2, 0x00);
   SetBitField(MACON3,
               MACON3_FRMLNEN +     // Type / len field will be checked
@@ -163,8 +164,7 @@ void initMAC(const unsigned char *deviceMAC)
  * \return uint True or false.
  */
 /**********************************************************************/
-unsigned int MACWrite(unsigned char *packet, unsigned int len)
-{
+unsigned int MACWrite(unsigned char *packet, unsigned int len) {
   volatile unsigned int i;
   // Control byte meaning use settings in MACON3
   unsigned char bytControl = 0x00;
@@ -187,10 +187,10 @@ unsigned int MACWrite(unsigned char *packet, unsigned int len)
   ERRATAFIX;
   SetBitField(ECON1, ECON1_TXRTS); // begin transmitting;
 
-  do
-  {
-  } while (!(ReadETHReg(EIR) & (EIR_TXIF))); // kill some time. Note: Nice place to block? //
-                                             // kill some time. Note: Nice place to block?
+  do {
+  } while (!(ReadETHReg(EIR) &
+             (EIR_TXIF))); // kill some time. Note: Nice place to block? //
+                           // kill some time. Note: Nice place to block?
 
   ClrBitField(ECON1, ECON1_TXRTS);
 
@@ -203,8 +203,7 @@ unsigned int MACWrite(unsigned char *packet, unsigned int len)
 
   if (ReadETHReg(ESTAT) & ESTAT_TXABRT) // did transmission get interrupted?
   {
-    if (TxStatus.bits.LateCollision)
-    {
+    if (TxStatus.bits.LateCollision) {
       ClrBitField(ECON1, ECON1_TXRTS);
       SetBitField(ECON1, ECON1_TXRTS);
 
@@ -214,10 +213,9 @@ unsigned int MACWrite(unsigned char *packet, unsigned int len)
     ClrBitField(ESTAT, ESTAT_TXABRT);
 
     return FALSE; // packet transmit failed. Inform calling function
-  }               // calling function may inquire why packet failed by calling [TO DO]
-                  // function
-  else
-  {
+  } // calling function may inquire why packet failed by calling [TO DO]
+    // function
+  else {
     return TRUE; // all fan dabby dozy
   }
 }
@@ -247,8 +245,7 @@ unsigned int MACWrite(unsigned char *packet, unsigned int len)
 
  */
 /**********************************************************************/
-unsigned int MACRead(unsigned char *packet, unsigned int maxLen)
-{
+unsigned int MACRead(unsigned char *packet, unsigned int maxLen) {
   volatile unsigned int pckLen;
   static unsigned int nextpckptr = RXSTART;
   // volatile RXSTATUS ptrRxStatus;
@@ -278,13 +275,10 @@ unsigned int MACRead(unsigned char *packet, unsigned int maxLen)
 
   // free up ENC memory my adjustng the Rx Read ptr
   // See errata this fixes ERXRDPT as it has to always be odd.
-  if (((nextpckptr - 1) < RXSTART) || ((nextpckptr - 1) > RXEND))
-  {
+  if (((nextpckptr - 1) < RXSTART) || ((nextpckptr - 1) > RXEND)) {
     WriteCtrReg(ERXRDPTL, (RXEND & 0x00ff));
     WriteCtrReg(ERXRDPTH, ((RXEND & 0xff00) >> 8));
-  }
-  else
-  {
+  } else {
     WriteCtrReg(ERXRDPTL, ((nextpckptr - 1) & 0x00ff));
     WriteCtrReg(ERXRDPTH, (((nextpckptr - 1) & 0xff00) >> 8));
   }
@@ -308,8 +302,7 @@ unsigned int MACRead(unsigned char *packet, unsigned int maxLen)
  * \return byte Value of register.
  */
 /**********************************************************************/
-static unsigned char ReadETHReg(unsigned char bytAddress)
-{
+static unsigned char ReadETHReg(unsigned char bytAddress) {
   unsigned char bytData;
 
   if (bytAddress > 0x1F)
@@ -334,8 +327,7 @@ static unsigned char ReadETHReg(unsigned char bytAddress)
  * \return byte Contens of register just read.
  */
 /**********************************************************************/
-static unsigned char ReadMacReg(unsigned char bytAddress)
-{
+static unsigned char ReadMacReg(unsigned char bytAddress) {
   unsigned char bytData;
 
   if (bytAddress > 0x1F)
@@ -369,8 +361,7 @@ static unsigned char ReadMacReg(unsigned char bytAddress)
  * \return byte
  */
 /**********************************************************************/
-static unsigned char WritePhyReg(unsigned char address, unsigned int data)
-{
+static unsigned char WritePhyReg(unsigned char address, unsigned int data) {
   if (address > 0x14)
     return FALSE;
 
@@ -394,18 +385,14 @@ static unsigned char WritePhyReg(unsigned char address, unsigned int data)
  * \return uint
  */
 /**********************************************************************/
-static unsigned int ReadPhyReg(unsigned char address)
-{
+static unsigned int ReadPhyReg(unsigned char address) {
   volatile unsigned int uiData;
   volatile unsigned char bytStat;
 
   BankSel(2);
   WriteCtrReg(MIREGADR, address);  // Write address of phy register to read
   SetBitField(MICMD, MICMD_MIIRD); // Set rd bit
-  do
-  {
-    bytStat = ReadMacReg(MISTAT);
-  } while (bytStat & MISTAT_BUSY);
+  do { bytStat = ReadMacReg(MISTAT); } while (bytStat & MISTAT_BUSY);
 
   ClrBitField(MICMD, MICMD_MIIRD);                  // Clear rd bit
   uiData = (unsigned int)ReadMacReg(MIRDL);         // Read low data byte
@@ -426,10 +413,9 @@ static unsigned int ReadPhyReg(unsigned char address)
  * \returns byte
  */
 /**********************************************************************/
-static unsigned char WriteCtrReg(unsigned char bytAddress, unsigned char bytData)
-{
-  if (bytAddress > 0x1f)
-  {
+static unsigned char WriteCtrReg(unsigned char bytAddress,
+                                 unsigned char bytData) {
+  if (bytAddress > 0x1f) {
     return FALSE;
   }
 
@@ -454,8 +440,8 @@ static unsigned char WriteCtrReg(unsigned char bytAddress, unsigned char bytData
  * \return uint  Number of bytes read.
  */
 /**********************************************************************/
-static unsigned int ReadMacBuffer(unsigned char *bytBuffer, unsigned int byt_length)
-{
+static unsigned int ReadMacBuffer(unsigned char *bytBuffer,
+                                  unsigned int byt_length) {
   unsigned char bytOpcode;
   volatile unsigned int len;
 
@@ -481,8 +467,8 @@ static unsigned int ReadMacBuffer(unsigned char *bytBuffer, unsigned int byt_len
  * \date WIP
  */
 /**********************************************************************/
-static unsigned int WriteMacBuffer(unsigned char *bytBuffer, unsigned int ui_len)
-{
+static unsigned int WriteMacBuffer(unsigned char *bytBuffer,
+                                   unsigned int ui_len) {
   unsigned char bytOpcode;
   volatile unsigned int len;
 
@@ -508,10 +494,9 @@ static unsigned int WriteMacBuffer(unsigned char *bytBuffer, unsigned int ui_len
  * \return byte      True or false
  */
 /**********************************************************************/
-static unsigned char SetBitField(unsigned char bytAddress, unsigned char bytData)
-{
-  if (bytAddress > 0x1f)
-  {
+static unsigned char SetBitField(unsigned char bytAddress,
+                                 unsigned char bytData) {
+  if (bytAddress > 0x1f) {
     return FALSE;
   }
 
@@ -537,10 +522,9 @@ static unsigned char SetBitField(unsigned char bytAddress, unsigned char bytData
  * \return byte      True or false
  */
 /**********************************************************************/
-static unsigned char ClrBitField(unsigned char bytAddress, unsigned char bytData)
-{
-  if (bytAddress > 0x1f)
-  {
+static unsigned char ClrBitField(unsigned char bytAddress,
+                                 unsigned char bytData) {
+  if (bytAddress > 0x1f) {
     return FALSE;
   }
 
@@ -565,8 +549,7 @@ static unsigned char ClrBitField(unsigned char bytAddress, unsigned char bytData
  * \date 0.1 09/06/07 First draft
  */
 /**********************************************************************/
-static void BankSel(unsigned char bank)
-{
+static void BankSel(unsigned char bank) {
   volatile unsigned char temp;
 
   if (bank > 3)
@@ -584,8 +567,7 @@ static void BankSel(unsigned char bank)
  * \author Iain Derrington
  */
 /**********************************************************************/
-static void ResetMac(void)
-{
+static void ResetMac(void) {
   unsigned char bytOpcode = RESET_OP;
   SEL_MAC(TRUE); // ENC CS low
 

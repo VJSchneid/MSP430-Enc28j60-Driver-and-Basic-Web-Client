@@ -13,8 +13,7 @@ resolving the IP the device will stop.
 */
 
 #pragma pack(1)
-typedef struct
-{
+typedef struct {
   unsigned char DestAddrs[6];
   unsigned char SrcAddrs[6];
   unsigned int type;
@@ -23,8 +22,7 @@ typedef struct
 #define ARPPACKET 0x0806
 #define IPPACKET  0x0800
 
-typedef struct
-{
+typedef struct {
   EtherNetII eth;
   unsigned int hardware;
   unsigned int protocol;
@@ -55,8 +53,7 @@ unsigned char deviceIP[4] = {192, 168, 0, 153};
 // IP address of the router
 unsigned char routerIP[4] = {192, 168, 0, 1};
 
-void SendArpPacket(unsigned char *targetIP)
-{
+void SendArpPacket(unsigned char *targetIP) {
   ARP arpPacket;
 
   /*----Setup EtherNetII Header----*/
@@ -84,12 +81,9 @@ void SendArpPacket(unsigned char *targetIP)
 
   // If we are just making sure this IP address is not in use fill in the
   // sender IP address as 0. Otherwise use the device IP address.
-  if (!memcmp(targetIP, deviceIP, sizeof(deviceIP)))
-  {
+  if (!memcmp(targetIP, deviceIP, sizeof(deviceIP))) {
     memset(arpPacket.senderIP, 0, sizeof(deviceIP));
-  }
-  else
-  {
+  } else {
     memcpy(arpPacket.senderIP, deviceIP, sizeof(deviceIP));
   }
 
@@ -97,8 +91,7 @@ void SendArpPacket(unsigned char *targetIP)
   MACWrite((unsigned char *)&arpPacket, sizeof(ARP));
 }
 
-int main(void)
-{
+int main(void) {
   // Stop watchdog timer to prevent time out reset.
   WDTCTL = WDTPW + WDTHOLD;
   // Initalise the ENC28J60 device.
@@ -106,12 +99,10 @@ int main(void)
   // Send an ARP at the router.
   SendArpPacket(routerIP);
 
-  while (1)
-  {
+  while (1) {
     ARP arpPacket;
     MACRead((unsigned char *)&arpPacket, sizeof(ARP));
-    if (!memcmp(arpPacket.senderIP, routerIP, sizeof(routerIP)))
-    {
+    if (!memcmp(arpPacket.senderIP, routerIP, sizeof(routerIP))) {
       // Successfully recieved reply
       // Copy in the routers MAC address.
       memcpy(routerMAC, arpPacket.senderMAC, sizeof(routerMAC));

@@ -13,8 +13,7 @@ unsigned int MACRead(unsigned char *packet, unsigned int maxLen);
 // useful structures
 typedef union {
   unsigned char v[7];
-  struct
-  {
+  struct {
     unsigned int ByteCount;
     unsigned char CollisionCount : 4;
     unsigned char CRCError : 1;
@@ -40,8 +39,7 @@ typedef union {
 
 typedef union {
   unsigned char v[6];
-  struct
-  {
+  struct {
     unsigned int NextPacket;
     unsigned int ByteCount;
     unsigned char LongEvent : 1;

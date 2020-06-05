@@ -9,8 +9,7 @@ void SendPing(unsigned char *targetIP);
 #define MAXPACKETLEN 100
 
 #pragma pack(1)
-typedef struct
-{
+typedef struct {
   unsigned char DestAddrs[6];
   unsigned char SrcAddrs[6];
   unsigned int type;
@@ -19,8 +18,7 @@ typedef struct
 #define ARPPACKET 0x0806
 #define IPPACKET  0x0800
 
-typedef struct
-{
+typedef struct {
   EtherNetII eth;
   unsigned int hardware;
   unsigned int protocol;
@@ -39,8 +37,7 @@ typedef struct
 // ARP hardware types
 #define ETHERNET 0x0001
 
-typedef struct
-{
+typedef struct {
   EtherNetII eth;
   unsigned char hdrlen : 4;
   unsigned char version : 4;
@@ -61,8 +58,7 @@ typedef struct
 #define UDPPROTOCOL  0x11
 #define TCPPROTOCOL  0x6
 
-typedef struct
-{
+typedef struct {
   IPhdr ip;
   unsigned int sourcePort;
   unsigned int destPort;
@@ -85,8 +81,7 @@ typedef struct
   // unsigned char options[8];
 } TCPhdr;
 
-typedef struct
-{
+typedef struct {
   IPhdr ip;
   unsigned int sourcePort;
   unsigned int destPort;
@@ -94,8 +89,7 @@ typedef struct
   unsigned int chksum;
 } UDPhdr;
 
-typedef struct
-{
+typedef struct {
   IPhdr ip;
   unsigned char type;
   unsigned char code;
@@ -107,8 +101,7 @@ typedef struct
 #define ICMPREPLY   0x0
 #define ICMPREQUEST 0x8
 
-typedef struct
-{
+typedef struct {
   UDPhdr udp;
   unsigned int id;
   unsigned int flags;

@@ -56,7 +56,8 @@ unsigned int SPIWrite(unsigned char * ptrBuffer, unsigned int ui_Len)
     for (i=0;i<ui_Len;i++)
     {
       UCB0TXBUF = *ptrBuffer++;
-      while (! (IFG2 & UCB0TXIFG));
+      while (!(UCTXIFG & UCB0IFG))
+          ;
     }
 
     return i;
@@ -79,10 +80,12 @@ unsigned int SPIRead(unsigned char * ptrBuffer, unsigned int ui_Len)
 
   for ( i=0;i<ui_Len;i++)
   {
-      while (! (IFG2 & UCB0TXIFG));// Could remove this to speed up
+      while (!(UCTXIFG & UCB0IFG))
+          ; // Could remove this to speed up
       // Dummy byte sent to create read.
       UCB0TXBUF = 0x00;
-      while (! (IFG2 & UCB0TXIFG));
+      while (!(UCTXIFG & UCB0IFG))
+          ;
       *ptrBuffer++ = UCB0RXBUF;
   }
   return i;

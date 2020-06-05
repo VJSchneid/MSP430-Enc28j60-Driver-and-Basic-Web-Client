@@ -5,21 +5,22 @@
  *
  */
 
-#define SCLK    BIT3
-#define SDI     BIT2
-#define SDO     BIT1
-#define CS      BIT0
+#define SCLK BIT3
+#define SDI  BIT2
+#define SDO  BIT1
+#define CS   BIT0
 
 /***********************************************************************/
 /** \brief Initilialise the SPI peripheral
  *
- * Description: init the SPI peripheral. 
+ * Description: init the SPI peripheral.
  */
 /**********************************************************************/
 void initSPI(void)
 {
   UCB0CTL1 = UCSWRST;
-  // Most signigicant bit, Mode ( 0, 0 ), Master, Syncronous mode, two stop bits
+  // Most signigicant bit, Mode ( 0, 0 ), Master, Syncronous mode, two stop
+  // bits
   UCB0CTL0 = UCSYNC + UCSPB + UCMSB + UCCKPH;
   // Use CPU clk
   UCB0CTL1 |= UCSSEL_2;
@@ -36,7 +37,7 @@ void initSPI(void)
 }
 
 /***********************************************************************/
-/** \brief SPiWrite 
+/** \brief SPiWrite
  *
  * Description: Writes bytes from buffer to SPI tx reg
 
@@ -46,21 +47,20 @@ void initSPI(void)
  * \return uint Number of bytes transmitted.
  */
 /**********************************************************************/
-unsigned int SPIWrite(unsigned char * ptrBuffer, unsigned int ui_Len)
+unsigned int SPIWrite(unsigned char *ptrBuffer, unsigned int ui_Len)
 {
   unsigned int i;
-  
+
   if (ui_Len == 0)
     return 0;
 
-    for (i=0;i<ui_Len;i++)
-    {
-      UCB0TXBUF = *ptrBuffer++;
-      while (!(UCTXIFG & UCB0IFG))
-          ;
-    }
+  for (i = 0; i < ui_Len; i++)
+  {
+    UCB0TXBUF = *ptrBuffer++;
+    while (!(UCTXIFG & UCB0IFG)) {}
+  }
 
-    return i;
+  return i;
 }
 
 /***********************************************************************/
@@ -74,19 +74,18 @@ unsigned int SPIWrite(unsigned char * ptrBuffer, unsigned int ui_Len)
  * \return uint Number of bytes read.
  */
 /**********************************************************************/
-unsigned int SPIRead(unsigned char * ptrBuffer, unsigned int ui_Len)
+unsigned int SPIRead(unsigned char *ptrBuffer, unsigned int ui_Len)
 {
   unsigned int i;
 
-  for ( i=0;i<ui_Len;i++)
+  for (i = 0; i < ui_Len; i++)
   {
-      while (!(UCTXIFG & UCB0IFG))
-          ; // Could remove this to speed up
-      // Dummy byte sent to create read.
-      UCB0TXBUF = 0x00;
-      while (!(UCTXIFG & UCB0IFG))
-          ;
-      *ptrBuffer++ = UCB0RXBUF;
+    while (!(UCTXIFG & UCB0IFG)) {} // Could remove this to speed up
+    // Dummy byte sent to create read.
+    UCB0TXBUF = 0x00;
+    while (!(UCTXIFG & UCB0IFG)) {}
+
+    *ptrBuffer++ = UCB0RXBUF;
   }
   return i;
 }
